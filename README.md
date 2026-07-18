@@ -18,7 +18,7 @@ _**Caixas com borda** = serviços rodando. **Texto entre parênteses** = tópico
 
 ```
                      ┌─────────────────┐
-                     │       API       │  POST /upload
+                     │       API       │  POST /videos/upload
                      └────────┬────────┘
                               │
                       (videos.uploaded)
