@@ -23,6 +23,12 @@ public class VideoEntity {
 	@Column(nullable = false)
 	private String baseKey;
 
+	@Column(nullable = false)
+	private String rawKey;
+
+	@Column(nullable = false)
+	private String contentType;
+
 	private String path480p;
 	private String path1080p;
 	private String masterKey;
