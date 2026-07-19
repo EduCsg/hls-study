@@ -2,37 +2,28 @@ package hls_study.api.service;
 
 import hls_study.api.dto.VideoUploadedEvent;
 import hls_study.api.entity.VideoEntity;
+import hls_study.api.event.VideoEventPublisher;
+import hls_study.api.exceptions.GatewayException;
 import hls_study.api.exceptions.VideoUploadException;
 import hls_study.api.repository.VideoRepository;
+import hls_study.api.storage.VideoStorageGateway;
 import hls_study.api.storage.VideoStorageKey;
 import hls_study.api.utils.VideoUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
 
-import java.util.concurrent.TimeUnit;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class VideoService {
 
-	private static final long KAFKA_SEND_TIMEOUT_SECONDS = 10;
-
-	private final S3Client s3Client;
 	private final VideoRepository videoRepository;
-	private final KafkaTemplate<String, VideoUploadedEvent> kafkaTemplate;
-
-	@Value("${aws.s3.bucketName}")
-	private String bucketName;
-
-	@Value("${kafka.topic.videoUploaded}")
-	private String videoUploadedTopic;
+	private final VideoEventPublisher eventPublisher;
+	private final VideoStorageGateway videoStorageGateway;
 
 	public VideoEntity uploadVideo(MultipartFile videoFile) {
 		VideoUtils.validateVideoFile(videoFile);
@@ -44,10 +35,11 @@ public class VideoService {
 		String rawVideoKey = key.raw(VideoUtils.getFileExtension(videoFile.getOriginalFilename()));
 
 		try {
-			s3Client.putObject(builder -> builder.bucket(bucketName).key(rawVideoKey).build(),
-					RequestBody.fromInputStream(videoFile.getInputStream(), videoFile.getSize()));
-		} catch (Exception e) {
+			videoStorageGateway.upload(rawVideoKey, videoFile.getInputStream(), videoFile.getSize());
+		} catch (GatewayException e) {
 			throw new VideoUploadException("Erro ao fazer upload do vídeo para o S3: " + e.getMessage(), e);
+		} catch (IOException e) {
+			throw new VideoUploadException("Erro ao ler o arquivo de vídeo: " + e.getMessage(), e);
 		}
 
 		log.info("Video uploaded to S3 with key: {}", rawVideoKey);
@@ -85,15 +77,10 @@ public class VideoService {
 													 .build();
 
 		try {
-			kafkaTemplate.send(videoUploadedTopic, videoEntity.getId(), event)
-						 .get(KAFKA_SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
+			eventPublisher.publishVideoUploaded(event);
+		} catch (GatewayException e) {
 			rollbackUpload(videoEntity, e);
-			throw new VideoUploadException("Publicação do evento no Kafka interrompida: " + e.getMessage(), e);
-		} catch (Exception e) {
-			rollbackUpload(videoEntity, e);
-			throw new VideoUploadException("Erro ao publicar evento de upload no Kafka: " + e.getMessage(), e);
+			throw new VideoUploadException("Erro ao publicar evento de upload: " + e.getMessage(), e);
 		}
 	}
 
@@ -115,7 +102,7 @@ public class VideoService {
 
 	private void compensateS3Upload(String rawVideoKey) {
 		try {
-			s3Client.deleteObject(builder -> builder.bucket(bucketName).key(rawVideoKey).build());
+			videoStorageGateway.delete(rawVideoKey);
 		} catch (Exception deleteException) {
 			log.error("Falha ao remover objeto do S3 (key={}) durante rollback; objeto pode ter ficado órfão",
 					rawVideoKey, deleteException);
