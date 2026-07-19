@@ -46,15 +46,11 @@ public final class VideoUtils {
 		return UUID.randomUUID().toString();
 	}
 
-	public static String getBaseVideoKey(String videoId) {
-		return "videos/" + videoId;
-	}
+	public static String getFileExtension(String filename) {
+		if (filename == null || filename.isEmpty()) {
+			return "";
+		}
 
-	public static String getRawVideoKey(String videoKey, MultipartFile video) {
-		return videoKey + "/raw" + getFileExtension(Objects.requireNonNull(video.getOriginalFilename()));
-	}
-
-	private static String getFileExtension(String filename) {
 		int lastDotIndex = filename.lastIndexOf('.');
 		if (lastDotIndex == -1 || lastDotIndex == filename.length() - 1) {
 			return "";
@@ -80,14 +76,14 @@ public final class VideoUtils {
 					"Extensão do arquivo inválida. Extensões válidas: " + VideoUtils.listValidExtensions());
 
 		if (!hasValidVideoSignature(videoFile))
-			throw new InvalidVideoException(
-					"Conteúdo do arquivo não corresponde a um vídeo válido do tipo declarado.");
+			throw new InvalidVideoException("Conteúdo do arquivo não corresponde a um vídeo válido do tipo declarado.");
 	}
 
 	private static boolean isValidFilename(String filename) {
-		return filename != null && !filename.isBlank() && filename.length() <= MAX_FILENAME_LENGTH
-				&& filename.chars().noneMatch(Character::isISOControl) && !filename.contains("/") && !filename
-				.contains("\\");
+		return filename != null && !filename.isBlank() && filename.length() <= MAX_FILENAME_LENGTH && filename.chars()
+																											  .noneMatch(
+																													  Character::isISOControl) && !filename.contains(
+				"/") && !filename.contains("\\");
 	}
 
 	private static boolean hasValidVideoSignature(MultipartFile videoFile) {

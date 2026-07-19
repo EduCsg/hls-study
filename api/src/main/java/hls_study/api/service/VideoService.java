@@ -4,6 +4,7 @@ import hls_study.api.dto.VideoUploadedEvent;
 import hls_study.api.entity.VideoEntity;
 import hls_study.api.exceptions.VideoUploadException;
 import hls_study.api.repository.VideoRepository;
+import hls_study.api.storage.VideoStorageKey;
 import hls_study.api.utils.VideoUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,8 +38,10 @@ public class VideoService {
 		VideoUtils.validateVideoFile(videoFile);
 
 		String videoId = VideoUtils.generateVideoId();
-		String baseVideoKey = VideoUtils.getBaseVideoKey(videoId);
-		String rawVideoKey = VideoUtils.getRawVideoKey(baseVideoKey, videoFile);
+
+		VideoStorageKey key = new VideoStorageKey(videoId);
+		String baseVideoKey = key.base();
+		String rawVideoKey = key.raw(VideoUtils.getFileExtension(videoFile.getOriginalFilename()));
 
 		try {
 			s3Client.putObject(builder -> builder.bucket(bucketName).key(rawVideoKey).build(),
