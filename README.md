@@ -90,11 +90,13 @@ docker compose up -d
 
 Isso sobe Kafka (multi-broker), MinIO e Postgres. Cada serviço (API, orchestrator, workers) tem instruções próprias de build/run no README da respectiva pasta.
 
+Com a API rodando, a documentação interativa (Swagger UI) fica em `http://localhost:8080/swagger-ui/index.html`.
+
 ## Status
 
 🚧 Em construção — projeto de estudo em progresso.
 
-- [ ] API: upload + registro no Postgres + publish no Kafka
+- [x] API: upload + registro no Postgres + publish no Kafka
 - [ ] worker-480p
 - [ ] worker-1080p
 - [ ] orchestrator: join 480p + 1080p
