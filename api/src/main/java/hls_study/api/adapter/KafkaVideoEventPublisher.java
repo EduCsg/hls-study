@@ -4,6 +4,7 @@ import hls_study.api.config.VideoProperties;
 import hls_study.api.dto.VideoUploadedEvent;
 import hls_study.api.event.VideoEventPublisher;
 import hls_study.api.exceptions.GatewayException;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.TimeUnit;
 
 @Component
+@NotNull
 @RequiredArgsConstructor
 public class KafkaVideoEventPublisher implements VideoEventPublisher {
 
